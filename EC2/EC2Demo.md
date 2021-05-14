@@ -1,4 +1,4 @@
-# Working with EC2 Instances
+@# Working with EC2 Instances
 
 In this activity you will:
 

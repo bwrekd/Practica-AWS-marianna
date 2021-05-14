@@ -1,0 +1,54 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: Cloudformation template to create a webserver
+Resources:
+  WebserverInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: t2.micro
+      ImageId: ami-0d5eff06f840b45e9
+      KeyName: <<add your keypair name>>
+      SecurityGroups:
+        - !Ref WebserverSG
+      UserData: !Base64 |
+        #!/bin/bash
+        yum update -y
+        amazon-linux-extras install -y lamp-mariadb10.2-php7.2 php7.2
+        yum install -y httpd mariadb-server
+        systemctl start httpd
+        systemctl enable httpd
+        usermod -a -G apache ec2-user
+        chown -R ec2-user:apache /var/www
+        chmod 2775 /var/www
+        find /var/www -type d -exec chmod 2775 {} \;
+        find /var/www -type f -exec chmod 0664 {} \;
+        echo "<?php phpinfo(); ?>" > /var/www/html/phpinfo.php
+        echo "This was created with Cloudformation :)" > /var/www/html/index.html
+      Tags: 
+      - Key: "Name"
+        Value: "<<your EID>>"
+  WebserverSG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: SG for the webserver that allows ssh and http ports
+      SecurityGroupIngress:
+      - IpProtocol: tcp
+        FromPort: '80'
+        ToPort: '80'
+        CidrIp: 0.0.0.0/0
+      - IpProtocol: tcp
+        FromPort: '22'
+        ToPort: '22'
+        CidrIp: 0.0.0.0/0
+      Tags: 
+      - Key: "Name"
+        Value:: "<<your EID>>"
+Outputs:
+  WebsiteURL:
+    Description: URL for newly created webserver stack
+    Value: !Join 
+      - ''
+      - - 'http://'
+        - !GetAtt 
+          - WebserverInstance
+          - PublicDnsName
+
